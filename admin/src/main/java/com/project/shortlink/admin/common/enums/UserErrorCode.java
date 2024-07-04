@@ -5,8 +5,9 @@ import com.project.shortlink.admin.common.convention.errorcode.IErrorCode;
 public enum UserErrorCode implements IErrorCode {
 
     USER_NULL("B000200","用户不存在"),
-    USER_EXIST("B000201","用户已存在");
-
+    USER_NAME_EXIST("B000201","用户名已存在"),
+    USER_EXIST("B000202","用户已存在"),
+    USER_SAVE_FAIL("B000203","用户新增失败");
     private final String code;
     private final String message;
 
