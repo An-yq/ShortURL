@@ -86,10 +86,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     public UserLoginRespDTO login(UserLoginReqDTO requestParam) {
         LambdaQueryWrapper<UserDO> queryWrapper = Wrappers.lambdaQuery(UserDO.class)
                 .eq(UserDO::getUsername, requestParam.getUsername())
-                .eq(UserDO::getPassword, requestParam.getPassword());
+                .eq(UserDO::getPassword, requestParam.getPassword())
+                .eq(UserDO::getDelFlag,0);
         UserDO userDO = baseMapper.selectOne(queryWrapper);
         if(userDO == null){
             throw new ClientException(USER_NULL);
+        }
+        Boolean hasKey = stringRedisTemplate.hasKey("login_" + requestParam.getUsername());
+        if(hasKey != null && hasKey){
+            throw new ClientException("用户已登录");
         }
         String uuid = UUID.randomUUID().toString(true);
         stringRedisTemplate.opsForValue().set("login_" + userDO.getUsername(),uuid,30L, TimeUnit.MINUTES);
