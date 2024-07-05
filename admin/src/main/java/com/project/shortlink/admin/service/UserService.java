@@ -3,7 +3,10 @@ package com.project.shortlink.admin.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.shortlink.admin.common.convention.result.Result;
 import com.project.shortlink.admin.dao.entity.UserDO;
+import com.project.shortlink.admin.dto.req.UserLoginReqDTO;
 import com.project.shortlink.admin.dto.req.UserRegisterReqDTO;
+import com.project.shortlink.admin.dto.req.UserUpdateReqDTO;
+import com.project.shortlink.admin.dto.resp.UserLoginRespDTO;
 import com.project.shortlink.admin.dto.resp.UserRespDTO;
 import org.springframework.stereotype.Service;
 
@@ -17,9 +20,33 @@ public interface UserService extends IService<UserDO> {
      * @param username 用户名
      * @return 前端响应实体类
      */
-    public Result<UserRespDTO> GetUserByUsername(String username);
+    Result<UserRespDTO> GetUserByUsername(String username);
 
+    /**
+     * 判断用户名是可用
+     * @param username 用户名
+     * @return 是否可用
+     */
     Boolean hasUsername(String username);
 
+    /**
+     * 注册用户
+     * @param requestParam 注册用户请求实体
+     */
     void register(UserRegisterReqDTO requestParam);
+
+    /**
+     * 修改用户
+     * @param requestParam 修改用户请求实体
+     */
+    void update(UserUpdateReqDTO requestParam);
+
+    /**
+     * 用户登录
+     * @param requestParam 用户登录请求实体
+     * @return 登录是否成功
+     */
+    UserLoginRespDTO login(UserLoginReqDTO requestParam);
+
+    Boolean checkLogin(String token,String username);
 }
