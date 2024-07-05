@@ -2,6 +2,7 @@ package com.project.shortlink.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -96,13 +97,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if(hasKey != null && hasKey){
             throw new ClientException("用户已登录");
         }
+
         String uuid = UUID.randomUUID().toString(true);
-        stringRedisTemplate.opsForValue().set("login_" + userDO.getUsername(),uuid,30L, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForHash().put("login_" + userDO.getUsername(),uuid, JSONUtil.toJsonStr(userDO));
+        stringRedisTemplate.expire("login_" + userDO.getUsername(),30L, TimeUnit.MINUTES);
+
         return new UserLoginRespDTO(uuid);
     }
 
     @Override
     public Boolean checkLogin(String token,String username) {
-        return stringRedisTemplate.hasKey("login_" + username);
+        return stringRedisTemplate.opsForHash().hasKey("login_" + username,token);
     }
 }
