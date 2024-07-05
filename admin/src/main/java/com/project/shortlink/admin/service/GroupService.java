@@ -9,4 +9,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public interface GroupService extends IService<GroupDO> {
+    /**
+     * 新增短链接分组
+     * @param groupName 分组名
+     */
+    void save(String groupName);
 }
