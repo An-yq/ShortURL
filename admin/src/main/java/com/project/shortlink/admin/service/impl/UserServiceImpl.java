@@ -97,7 +97,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if(hasKey != null && hasKey){
             throw new ClientException("用户已登录");
         }
-
+        //将token和用户信息存入缓存
         String uuid = UUID.randomUUID().toString(true);
         stringRedisTemplate.opsForHash().put("login_" + userDO.getUsername(),uuid, JSONUtil.toJsonStr(userDO));
         stringRedisTemplate.expire("login_" + userDO.getUsername(),30L, TimeUnit.MINUTES);
@@ -108,5 +108,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     @Override
     public Boolean checkLogin(String token,String username) {
         return stringRedisTemplate.opsForHash().hasKey("login_" + username,token);
+    }
+
+    @Override
+    public void logout(String token, String username) {
+        //删除redis缓存
+        if(!stringRedisTemplate.opsForHash().hasKey("login_" + username,token)){
+            throw new ClientException("用户未登录");
+        }
+        stringRedisTemplate.delete("login_" + username);
     }
 }
