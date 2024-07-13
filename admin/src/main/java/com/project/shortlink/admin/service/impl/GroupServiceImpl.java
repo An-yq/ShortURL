@@ -63,7 +63,9 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     @Override
     public void updateGroup(UpdateGroupReqDTO requestParam) {
         LambdaUpdateWrapper<GroupDO> wrapper = Wrappers.lambdaUpdate(GroupDO.class)
-                .eq(GroupDO::getGid, requestParam.getGid());
+                .eq(GroupDO::getGid, requestParam.getGid())
+                .eq(GroupDO::getUsername,UserContext.getUsername())
+                .eq(GroupDO::getDelFlag,0);
         GroupDO bean = BeanUtil.toBean(requestParam, GroupDO.class);
         baseMapper.update(bean, wrapper);
     }
