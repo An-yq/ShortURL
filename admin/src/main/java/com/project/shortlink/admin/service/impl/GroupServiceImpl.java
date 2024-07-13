@@ -9,7 +9,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.shortlink.admin.common.biz.user.UserContext;
 import com.project.shortlink.admin.dao.entity.GroupDO;
 import com.project.shortlink.admin.dao.mapper.GroupMapper;
-import com.project.shortlink.admin.dto.req.UpdateGroupReqDTO;
+import com.project.shortlink.admin.dto.req.ShortLinkGroupSortReqDTO;
+import com.project.shortlink.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import com.project.shortlink.admin.dto.resp.ShortLinkGroupRespDTO;
 import com.project.shortlink.admin.service.GroupService;
 import com.project.shortlink.admin.tooklit.RandomStringGenerator;
@@ -61,7 +62,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     }
 
     @Override
-    public void updateGroup(UpdateGroupReqDTO requestParam) {
+    public void updateGroup(ShortLinkGroupUpdateReqDTO requestParam) {
         LambdaUpdateWrapper<GroupDO> wrapper = Wrappers.lambdaUpdate(GroupDO.class)
                 .eq(GroupDO::getGid, requestParam.getGid())
                 .eq(GroupDO::getUsername,UserContext.getUsername())
@@ -79,5 +80,20 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         GroupDO groupDO = new GroupDO();
         groupDO.setDelFlag(1);
         baseMapper.update(groupDO,wrapper);
+    }
+
+    @Override
+    public void sortGroup(List<ShortLinkGroupSortReqDTO> requestParam) {
+        requestParam.forEach(each ->{
+            GroupDO groupDO = GroupDO.builder()
+                    .sortOrder(each.getSortOrder())
+                            .build();
+            LambdaUpdateWrapper<GroupDO> wrapper = Wrappers.lambdaUpdate(GroupDO.class)
+                            .eq(GroupDO::getUsername, UserContext.getUsername())
+                            .eq(GroupDO::getDelFlag, 0)
+                            .eq(GroupDO::getGid, each.getGid());
+            baseMapper.update(groupDO,wrapper);
+            }
+        );
     }
 }
