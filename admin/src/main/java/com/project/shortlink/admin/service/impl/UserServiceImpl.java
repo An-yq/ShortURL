@@ -100,7 +100,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         //将token和用户信息存入缓存
         String uuid = UUID.randomUUID().toString(true);
         stringRedisTemplate.opsForHash().put("login_" + userDO.getUsername(),uuid, JSONUtil.toJsonStr(userDO));
-        stringRedisTemplate.expire("login_" + userDO.getUsername(),30L, TimeUnit.MINUTES);
+        stringRedisTemplate.expire("login_" + userDO.getUsername(),30L, TimeUnit.DAYS);
 
         return new UserLoginRespDTO(uuid);
     }
