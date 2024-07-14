@@ -1,7 +1,8 @@
 package com.project.shortlink.project.dao.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.project.shortlink.project.common.database.BaseDO;
-import lombok.Builder;
 import lombok.Data;
 
 import java.util.Date;
@@ -10,7 +11,7 @@ import java.util.Date;
  * 短链接持久层实体
  */
 @Data
-@Builder
+@TableName("t_link")
 public class ShortLinkDO extends BaseDO {
     /**
      * 域名
@@ -65,5 +66,6 @@ public class ShortLinkDO extends BaseDO {
     /**
      * 描述
      */
+    @TableField("`describe`")
     private String describe;
 }

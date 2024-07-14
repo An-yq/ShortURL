@@ -10,13 +10,17 @@ import java.util.Date;
 @Data
 public class ShortLinkCreateReqDTO {
     /**
+     * 域名
+     */
+    private String domain;
+    /**
      * 原始链接
      */
     private String originUrl;
     /**
-     * 启用状态 0：启用 1：未启用
+     * 分组id
      */
-    private int enableStatus;
+    private String gid;
 
     /**
      * 创建类型 0：自定义 1：控制台
