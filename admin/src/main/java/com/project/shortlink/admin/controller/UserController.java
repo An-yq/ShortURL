@@ -24,7 +24,7 @@ public class UserController {
     /**
      * 通过用户名查询用户的脱敏后的信息
      */
-    @GetMapping("/api/short-link/v1/user/{username}")
+    @GetMapping("/api/short-link/admin/v1/user/{username}")
     public Result GetUserByUsername(@PathVariable String username){
         return Results.success(userService.GetUserByUsername(username));
     }
@@ -32,21 +32,21 @@ public class UserController {
     /**
      * 查询用户真实信息
      */
-    @GetMapping("/api/short-link/v1/actual/user/{username}")
+    @GetMapping("/api/short-link/admin/v1/actual/user/{username}")
     public Result GetActualUserByUsername(@PathVariable String username){
         return Results.success(BeanUtil.toBean(userService.GetUserByUsername(username).getData(), UserActualRespDTO.class));
     }
     /**
      * 查询用户名是否存在(是否可用)
      */
-    @GetMapping("/api/short-link/v1/user/has-username")
+    @GetMapping("/api/short-link/admin/v1/user/has-username")
     public Result hasUsername(@RequestParam String username){
         return Results.success(userService.hasUsername(username));
     }
     /**
      * 用户注册接口
      */
-    @PostMapping("/api/short-link/v1/user")
+    @PostMapping("/api/short-link/admin/v1/user")
     public Result<Void> register(@RequestBody UserRegisterReqDTO requestParam){
         userService.register(requestParam);
         return Results.success();
@@ -54,7 +54,7 @@ public class UserController {
     /**
      * 修改用户信息
      */
-    @PutMapping("/api/short-link/v1/user")
+    @PutMapping("/api/short-link/admin/v1/user")
     public Result<Void> update(@RequestBody UserUpdateReqDTO requestParam){
         userService.update(requestParam);
         return Results.success();
@@ -62,21 +62,21 @@ public class UserController {
     /**
      * 用户登录功能
      */
-    @PostMapping("/api/short-link/v1/user/login")
+    @PostMapping("/api/short-link/admin/v1/user/login")
     public Result<UserLoginRespDTO> login(@RequestBody UserLoginReqDTO requestParam){
         return Results.success(userService.login(requestParam));
     }
     /**
      * 查询用户是否登录
      */
-    @GetMapping("/api/short-link/v1/user/check-login")
+    @GetMapping("/api/short-link/admin/v1/user/check-login")
     public Result<Boolean> checkLogin(@RequestParam("token") String token,@RequestParam("username") String username){
         return Results.success(userService.checkLogin(token,username));
     }
     /**
      * 退出登录
      */
-    @DeleteMapping("/api/short-link/v1/user/logout")
+    @DeleteMapping("/api/short-link/admin/v1/user/logout")
     public Result<Void> logout(@RequestParam("token") String token,@RequestParam("username") String username){
         userService.logout(token,username);
         return Results.success();
