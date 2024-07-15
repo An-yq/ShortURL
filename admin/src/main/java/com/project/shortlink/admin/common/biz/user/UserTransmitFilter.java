@@ -11,6 +11,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.io.IOException;
@@ -26,25 +27,29 @@ import static com.project.shortlink.admin.common.enums.UserErrorCode.USER_TOKEN_
 @RequiredArgsConstructor
 public class UserTransmitFilter implements Filter {
     private final StringRedisTemplate stringRedisTemplate;
+    /**
+     * 忽略url：登录接口、注册的时候查看名字是否可用
+     */
     private static final List<String> IGNORE_URI = Lists.newArrayList(
             "/api/short-link/admin/v1/user/login",
             "/api/short-link/admin/admin/v1/actual/user/has-username"
     );
+
+    @SneakyThrows
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         String requestURI = httpServletRequest.getRequestURI();
         if (!IGNORE_URI.contains(requestURI)) {
             String method = httpServletRequest.getMethod();
+            /**
+             * 如果这个方法是用户模块的信息，并且是post请求，不用验证 -> 其实就是注册接口，因为修改信息接口也是这个路径，但是是put
+             */
             if (!(Objects.equals(requestURI, "/api/short-link/admin/v1/user") && Objects.equals(method, "POST"))) {
                 String username = httpServletRequest.getHeader("username");
                 String token = httpServletRequest.getHeader("token");
                 if (!StrUtil.isAllNotBlank(username, token)) {
-                    try {
-                        returnJson((HttpServletResponse) servletResponse, JSON.toJSONString(Results.failure(new ClientException(USER_TOKEN_FAIL))));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                    returnJson((HttpServletResponse) servletResponse, JSON.toJSONString(Results.failure(new ClientException(USER_TOKEN_FAIL))));
                     return;
                 }
                 Object userInfoJsonStr;
@@ -54,20 +59,16 @@ public class UserTransmitFilter implements Filter {
                         throw new ClientException(USER_TOKEN_FAIL);
                     }
                 } catch (Exception ex) {
-                    try {
-                        returnJson((HttpServletResponse) servletResponse,  JSON.toJSONString(Results.failure(new ClientException(USER_TOKEN_FAIL))));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                    returnJson((HttpServletResponse) servletResponse, JSON.toJSONString(Results.failure(new ClientException(USER_TOKEN_FAIL))));
                     return;
                 }
                 UserInfoDTO userInfoDTO = JSONUtil.toBean(userInfoJsonStr.toString(), UserInfoDTO.class);
                 UserContext.setUser(userInfoDTO);
             }
         }
-        try{
-            filterChain.doFilter(servletRequest,servletResponse);
-        }finally {
+        try {
+            filterChain.doFilter(servletRequest, servletResponse);
+        } finally {
             UserContext.removeUser();
         }
     }
