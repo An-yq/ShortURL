@@ -3,7 +3,11 @@ package com.project.shortlink.admin.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.shortlink.admin.common.convention.result.Result;
-import com.project.shortlink.admin.remote.dto.*;
+import com.project.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
+import com.project.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
+import com.project.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
+import com.project.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
+import com.project.shortlink.admin.remote.service.ShortLinkRemoteService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

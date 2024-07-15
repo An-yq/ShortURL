@@ -1,10 +1,14 @@
-package com.project.shortlink.admin.remote.dto;
+package com.project.shortlink.admin.remote.service;
 
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.shortlink.admin.common.convention.result.Result;
+import com.project.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
+import com.project.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
+import com.project.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
+import com.project.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -6,8 +6,11 @@ import com.project.shortlink.project.dao.entity.ShortLinkDO;
 import com.project.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.project.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
+import com.project.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.project.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * ShortLink的Service接口层
@@ -29,4 +32,10 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
 
     IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam);
 
+    /**
+     * 查询分组内的短链接数量
+     * @param requestParam 分组id集合
+     * @return 分组id+短链接数量 集合
+     */
+    List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(List<String> requestParam);
 }
