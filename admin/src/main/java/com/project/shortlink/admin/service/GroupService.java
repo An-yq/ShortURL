@@ -20,6 +20,8 @@ public interface GroupService extends IService<GroupDO> {
      */
     void save(String groupName);
 
+    void save(String username,String groupName);
+
     /**
      * 查询短链接分组
      * @return
