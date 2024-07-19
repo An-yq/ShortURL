@@ -48,10 +48,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         //生成短链接后缀
         String suffix = generateSuffix(requestParam);
+        String fullShortUrl = requestParam.getDomain() + "/" + suffix;
         //1. 将shortLink添加到路由表中
         ShortLinkGotoDO shortLinkGotoDO = ShortLinkGotoDO.builder()
                 .gid(requestParam.getGid())
-                .fullShortUrl(requestParam.getDomain() + suffix)
+                .fullShortUrl(fullShortUrl)
                 .build();
         shortLinkGotoMapper.insert(shortLinkGotoDO);
         //2. 将短链接添加到t_link表中
@@ -59,7 +60,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .enableStatus(0)
                 .createType(requestParam.getCreateType())
                 .domain(requestParam.getDomain())
-                .fullShortUrl(requestParam.getDomain() + "/" + suffix)
+                .fullShortUrl(fullShortUrl)
                 .shortUri(suffix)
                 .originUrl(requestParam.getOriginUrl())
                 .clickNum(0)
@@ -81,7 +82,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             }
         }
         //将短链接添加到布隆过滤器中
-        shortUriCreateCachePenetrationBloomFilter.add(suffix);
+        shortUriCreateCachePenetrationBloomFilter.add(fullShortUrl);
         return ShortLinkCreateRespDTO.builder()
                 .gid(shortLinkDO.getGid())
                 .fullShortUrl("http://" + shortLinkDO.getFullShortUrl())
