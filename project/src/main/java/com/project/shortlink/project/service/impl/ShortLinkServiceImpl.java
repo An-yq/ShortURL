@@ -37,6 +37,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.project.shortlink.project.common.constant.RedisConstant.*;
 
@@ -178,7 +179,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(wrapper);
             if (shortLinkGotoDO == null) {
                 //7. 数据库中不存在，将连接标记为无效
-                stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,fullShortUrl),"-");
+                stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,fullShortUrl),"-",30, TimeUnit.MINUTES);
                 //不要忘记判空
                 return;
             }
