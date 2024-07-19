@@ -21,6 +21,7 @@ import com.project.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.project.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import com.project.shortlink.project.service.ShortLinkService;
 import com.project.shortlink.project.toolkit.HashUtil;
+import com.project.shortlink.project.toolkit.LinkUtil;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -81,6 +82,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //insert的时候加上try-catch，加上一层保险
         try {
             baseMapper.insert(shortLinkDO);
+            //将短链接保存到缓存中，缓存预热
+            stringRedisTemplate.opsForValue().set(
+                    String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),
+                    requestParam.getOriginUrl(),
+                    LinkUtil.getValidTime(requestParam.getValidDate()));
         } catch (DuplicateKeyException e) {
             LambdaQueryWrapper<ShortLinkDO> wrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
                     .eq(ShortLinkDO::getFullShortUrl, shortLinkDO.getFullShortUrl());
@@ -195,7 +201,10 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             //判空,重定向
             if (shortLinkDO != null) {
                 originUrl = shortLinkDO.getOriginUrl();
-                stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),originUrl);
+                stringRedisTemplate.opsForValue().set(
+                        String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),
+                        originUrl,
+                        LinkUtil.getValidTime(shortLinkDO.getValidDate()));
                 ((HttpServletResponse)response).sendRedirect(originUrl);
             }
         } finally {
