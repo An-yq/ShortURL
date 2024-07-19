@@ -86,7 +86,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             stringRedisTemplate.opsForValue().set(
                     String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),
                     requestParam.getOriginUrl(),
-                    LinkUtil.getValidTime(requestParam.getValidDate()));
+                    LinkUtil.getValidTime(requestParam.getValidDate()),
+                    TimeUnit.MILLISECONDS);
         } catch (DuplicateKeyException e) {
             LambdaQueryWrapper<ShortLinkDO> wrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
                     .eq(ShortLinkDO::getFullShortUrl, shortLinkDO.getFullShortUrl());
@@ -204,7 +205,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 stringRedisTemplate.opsForValue().set(
                         String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),
                         originUrl,
-                        LinkUtil.getValidTime(shortLinkDO.getValidDate()));
+                        LinkUtil.getValidTime(shortLinkDO.getValidDate()),
+                        TimeUnit.MILLISECONDS);
                 ((HttpServletResponse)response).sendRedirect(originUrl);
             }
         } finally {
