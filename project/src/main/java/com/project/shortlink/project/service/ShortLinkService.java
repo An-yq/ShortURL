@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.shortlink.project.dao.entity.ShortLinkDO;
 import com.project.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.shortlink.project.dto.req.ShortLinkPageReqDTO;
+import com.project.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.project.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import com.project.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.project.shortlink.project.dto.resp.ShortLinkPageRespDTO;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,4 +41,19 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @return 分组id+短链接数量 集合
      */
     List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(List<String> requestParam);
+
+    /**
+     * 修改短链接信息
+     * @param requestParam 修改短链接信息实体
+     * @return void
+     */
+    Void updateShortLink(ShortLinkUpdateReqDTO requestParam);
+
+    /**
+     * 短链接跳转功能
+     * @param shortUri 短链接后缀
+     * @param request 请求体
+     * @param response 响应体
+     */
+    void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
 }
