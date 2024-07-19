@@ -168,12 +168,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         boolean contains = shortUriCreateCachePenetrationBloomFilter.contains(fullShortUrl);
         if(!contains){
             //TODO 返回错误页面
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
         //4. Redis判断是否为空的字段
         String isNull = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,fullShortUrl));
         if(StrUtil.isNotBlank(isNull)){
             //TODO 返回错误信息页面
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
         //5. 加分布式锁，开始数据库查询
@@ -186,7 +188,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(wrapper);
             if (shortLinkGotoDO == null) {
                 //7. 数据库中不存在，将连接标记为无效
-                stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,fullShortUrl),"-",30, TimeUnit.MINUTES);
+                stringRedisTemplate.opsForValue().set(
+                        String.format(GOTO_SHORT_LINK_IS_NULL_KEY,fullShortUrl),
+                        "-",
+                        30,
+                        TimeUnit.MINUTES);
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 //不要忘记判空
                 return;
             }
