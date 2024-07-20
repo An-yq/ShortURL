@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.shortlink.project.dao.entity.ShortLinkDO;
 import com.project.shortlink.project.dao.mapper.RecycleBinMapper;
+import com.project.shortlink.project.dto.req.DeleteRecycleBinReqDTO;
 import com.project.shortlink.project.dto.req.RecoverRecycleBinReqDTO;
 import com.project.shortlink.project.dto.req.SaveRecycleBinReqDTO;
 import com.project.shortlink.project.dto.req.ShortLinkRecycleBinPageReqDTO;
@@ -65,12 +66,23 @@ public class RecycleBinServiceImpl extends ServiceImpl<RecycleBinMapper, ShortLi
         //1. 将短链接enable_status改成0
         LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
                 .eq(ShortLinkDO::getGid, requestParam.getGid())
-                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl());
+                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                .eq(ShortLinkDO::getDelFlag,0);
         ShortLinkDO shortLinkDO = ShortLinkDO.builder()
                 .enableStatus(0)
                 .build();
         baseMapper.update(shortLinkDO,updateWrapper);
         //2. 将短链接缓存中不可用标识删除
         stringRedisTemplate.delete(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,shortLinkDO.getFullShortUrl()));
+    }
+
+    @Override
+    public void deleteRecycleBin(DeleteRecycleBinReqDTO requestParam) {
+        LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, requestParam.getGid())
+                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                .eq(ShortLinkDO::getDelFlag,0);
+        baseMapper.delete(updateWrapper);
+        //注意这里不用删除缓存，因为移入回收站的时候就已经删除了
     }
 }
