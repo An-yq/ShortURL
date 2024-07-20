@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -173,14 +174,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //3. 查询布隆过滤器中是否存在
         boolean contains = shortUriCreateCachePenetrationBloomFilter.contains(fullShortUrl);
         if(!contains){
-            //TODO 返回错误页面
             ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
         //4. Redis判断是否为空的字段
         String isNull = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,fullShortUrl));
         if(StrUtil.isNotBlank(isNull)){
-            //TODO 返回错误信息页面
             ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
@@ -212,16 +211,19 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .eq(ShortLinkDO::getGid, gid)
                     .eq(ShortLinkDO::getFullShortUrl,fullShortUrl);
             ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
-            //判空,重定向
-            if (shortLinkDO != null) {
-                originUrl = shortLinkDO.getOriginUrl();
-                stringRedisTemplate.opsForValue().set(
-                        String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),
-                        originUrl,
-                        LinkUtil.getValidTime(shortLinkDO.getValidDate()),
-                        TimeUnit.MILLISECONDS);
-                ((HttpServletResponse)response).sendRedirect(originUrl);
+            //判空,重定向----如果这里为空，说明他在回收站，不能用
+            if (shortLinkDO == null || shortLinkDO.getValidDate().before(new Date())) {
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
+                //不要忘记判空
+                return;
             }
+            originUrl = shortLinkDO.getOriginUrl();
+            stringRedisTemplate.opsForValue().set(
+                    String.format(GOTO_SHORT_LINK_KEY,fullShortUrl),
+                    originUrl,
+                    LinkUtil.getValidTime(shortLinkDO.getValidDate()),
+                    TimeUnit.MILLISECONDS);
+            ((HttpServletResponse)response).sendRedirect(originUrl);
         } finally {
             lock.unlock();
         }
