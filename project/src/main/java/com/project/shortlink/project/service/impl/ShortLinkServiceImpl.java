@@ -1,6 +1,10 @@
 package com.project.shortlink.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.Week;
+import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -9,8 +13,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.shortlink.project.common.convention.exception.ServiceException;
+import com.project.shortlink.project.dao.entity.LinkAccessStatsDO;
 import com.project.shortlink.project.dao.entity.ShortLinkDO;
 import com.project.shortlink.project.dao.entity.ShortLinkGotoDO;
+import com.project.shortlink.project.dao.mapper.LinkAccessStatsMapper;
 import com.project.shortlink.project.dao.mapper.ShortLinkGotoMapper;
 import com.project.shortlink.project.dao.mapper.ShortLinkMapper;
 import com.project.shortlink.project.dto.req.ShortLinkCreateReqDTO;
@@ -24,6 +30,8 @@ import com.project.shortlink.project.toolkit.HashUtil;
 import com.project.shortlink.project.toolkit.LinkUtil;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -41,10 +49,9 @@ import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.project.shortlink.project.common.constant.RedisConstant.*;
 
@@ -59,6 +66,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final ShortLinkGotoMapper shortLinkGotoMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedissonClient redissonClient;
+    private final LinkAccessStatsMapper linkAccessStatsMapper;
 
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
@@ -168,6 +176,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String originUrl = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
         if(StrUtil.isNotBlank(originUrl)){
             //跳转
+            linkAccessStats(fullShortUrl, null, request, response);
             ((HttpServletResponse)response).sendRedirect(originUrl);
             return;
         }
@@ -185,8 +194,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         //5. 加分布式锁，开始数据库查询
         RLock lock = redissonClient.getLock(String.format(LOCK_GOTO_SHORT_LINK_KEY, fullShortUrl));
+        lock.lock();
         try {
-            lock.lock();
+            originUrl = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
+            if (StrUtil.isNotBlank(originUrl)) {
+                linkAccessStats(fullShortUrl, null, request, response);
+                ((HttpServletResponse) response).sendRedirect(originUrl);
+                return;
+            }
             //6. 在goto表里面查询短链接所在分组
             LambdaQueryWrapper<ShortLinkGotoDO> wrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
                     .eq(ShortLinkGotoDO::getFullShortUrl, serverName + "/" + shortUri);
@@ -224,9 +239,94 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     originUrl,
                     LinkUtil.getValidTime(shortLinkDO.getValidDate()),
                     TimeUnit.MILLISECONDS);
+            linkAccessStats(fullShortUrl, gid, request, response);
             ((HttpServletResponse)response).sendRedirect(originUrl);
         } finally {
             lock.unlock();
+        }
+    }
+
+    /**
+     * 监控短链接基础状态
+     * @param gid 短链接分组id
+     * @param fullShortUrl 完整短链接
+     * @param request Http请求
+     * @param response Http响应
+     */
+    private void linkAccessStats(String gid,String fullShortUrl,ServletRequest request,ServletResponse response){
+        //是否是用户第一次访问该短链接
+        AtomicBoolean uvFirstFlag = new AtomicBoolean();
+
+        Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        try {
+            /**
+             * 任务，生成UUID，加入Redis中
+             */
+            Runnable addResponseCookieTask = () -> {
+                String uv = UUID.fastUUID().toString();
+                Cookie uvCookie = new Cookie("uv", uv);
+                uvCookie.setMaxAge(60 * 60 * 24 * 30);
+                uvCookie.setPath(StrUtil.sub(fullShortUrl, fullShortUrl.indexOf("/"), fullShortUrl.length()));
+                ((HttpServletResponse) response).addCookie(uvCookie);
+                uvFirstFlag.set(Boolean.TRUE);
+                stringRedisTemplate.opsForSet().add("short-link:stats:uv:" + fullShortUrl, uv);
+            };
+            /**
+             * 判断uvFirstFlag是否为true
+             * 将用户的cookie写入Redis，如果Redis中没有，就是第一次访问
+             */
+            if(ArrayUtil.isNotEmpty(cookies)){
+                Arrays.stream(cookies)
+                        .filter(each -> Objects.equals(each.getName(), "uv"))
+                        .findFirst()
+                        .map(Cookie::getValue)
+                        .ifPresentOrElse(each -> {
+                            Long uvAdded = stringRedisTemplate.opsForSet().add("short-link:stats:uv:" + fullShortUrl, each);
+                            uvFirstFlag.set(uvAdded != null && uvAdded > 0L);
+                        },addResponseCookieTask);
+            }else {
+                addResponseCookieTask.run();
+            }
+            /**
+             * 判断uipFirstFlag是否为true
+             * 将用户的ip写入Redis，如果Redis中没有，就是第一次访问
+             */
+            String remoteAddr = LinkUtil.getActualIp(((HttpServletRequest) request));
+            Long uipAdded = stringRedisTemplate.opsForSet().add("short-link:stats:uip:" + fullShortUrl, remoteAddr);
+            boolean uipFirstFlag = uipAdded != null && uipAdded > 0L;
+            /**
+             * 如果传进来的gid为空，我们就去goto表查询
+             */
+            if (StrUtil.isBlank(gid)) {
+                LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                        .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
+                ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
+                gid = shortLinkGotoDO.getGid();
+            }
+            /**
+             *  访问小时数和访问星期数
+             */
+            int hour = DateUtil.hour(new Date(), true);
+            Week weekday = DateUtil.dayOfWeekEnum(new Date());
+            int weekValue = weekday.getIso8601Value();
+            /**
+             * 下面执行mybatis写的sql语句
+             * 1. 如果数据库中没有记录就创建一条
+             * 2. 如果有记录，就进行相应的修改
+             */
+            LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
+                    .gid(gid)
+                    .fullShortUrl(fullShortUrl)
+                    .date(new Date())
+                    .weekday(weekValue)
+                    .hour(hour)
+                    .pv(1)
+                    .uv(uvFirstFlag.get() ? 1 : 0)
+                    .uip(uipFirstFlag ? 1 : 0)
+                    .build();
+            linkAccessStatsMapper.shortLinkStats(linkAccessStatsDO);
+        } catch (Throwable ex) {
+            log.error("短链接访问量统计异常", ex);
         }
     }
 
@@ -252,6 +352,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         return null;
     }
 
+    /**
+     * 生成短链接后缀
+     * @param requestParam 短链接创建实体对象
+     * @return 短链接后缀
+     */
     private String generateSuffix(ShortLinkCreateReqDTO requestParam) {
         String shortUri = null;
         //加上当前的毫秒数，减少hash冲突
