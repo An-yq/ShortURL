@@ -1,4 +1,4 @@
-package com.project.shortlink.admin.remote.service;
+package com.project.shortlink.admin.remote.dto.resp;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.http.HttpUtil;
@@ -7,7 +7,6 @@ import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.shortlink.admin.common.convention.result.Result;
 import com.project.shortlink.admin.remote.dto.req.*;
-import com.project.shortlink.admin.remote.dto.resp.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -87,18 +86,6 @@ public interface ShortLinkRemoteService {
         requestMap.put("size", requestParam.getSize());
         String resultPageStr = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/recycleBin/page", requestMap);
         return JSON.parseObject(resultPageStr, new TypeReference<>() {
-        });
-    }
-
-    /**
-     * 访问单个短链接指定时间内监控数据
-     *
-     * @param requestParam 访问短链接监控请求参数
-     * @return 短链接监控信息
-     */
-    default Result<ShortLinkStatsRespDTO> oneShortLinkStats(ShortLinkStatsReqDTO requestParam) {
-        String resultBodyStr = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/stats", BeanUtil.beanToMap(requestParam));
-        return JSON.parseObject(resultBodyStr, new TypeReference<>() {
         });
     }
 
