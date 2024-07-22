@@ -49,6 +49,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -159,6 +160,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
         //修改短链接
         //1.根据请求参数在数据库中查询短链接
