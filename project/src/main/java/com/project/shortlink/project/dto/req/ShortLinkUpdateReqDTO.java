@@ -23,6 +23,10 @@ public class ShortLinkUpdateReqDTO {
      */
     private String originUrl;
     /**
+     * 原始分组
+     */
+    private String originGid;
+    /**
      * 分组id
      */
     private String gid;

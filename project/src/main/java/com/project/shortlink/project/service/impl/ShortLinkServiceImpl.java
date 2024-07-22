@@ -15,7 +15,9 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.project.shortlink.project.common.convention.exception.ClientException;
 import com.project.shortlink.project.common.convention.exception.ServiceException;
+import com.project.shortlink.project.common.enums.ValidDateEnum;
 import com.project.shortlink.project.dao.entity.*;
 import com.project.shortlink.project.dao.mapper.*;
 import com.project.shortlink.project.dto.req.ShortLinkCreateReqDTO;
@@ -41,6 +43,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
+import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -156,15 +159,102 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     @Override
-    public Void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
-        ShortLinkDO shortLinkDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
-        LambdaUpdateWrapper<ShortLinkDO> wrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
-                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+    public void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
+        //修改短链接
+        //1.根据请求参数在数据库中查询短链接
+        LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, requestParam.getOriginGid())
                 .eq(ShortLinkDO::getDelFlag, 0)
+                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
                 .eq(ShortLinkDO::getEnableStatus, 0);
+        ShortLinkDO hasShortLinkDO = baseMapper.selectOne(queryWrapper);
+        if(hasShortLinkDO == null){
+            throw new ClientException("短链接记录不存在");
+        }
+        //2. 如果查询出来的短链接的分组标识和requestParam中要修改成的gid相同，就直接更新数据库即可（不用加读写锁）
+        if(Objects.equals(hasShortLinkDO.getGid(),requestParam.getGid())){
+            LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getGid, requestParam.getGid())
+                    .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                    .eq(ShortLinkDO::getDelFlag, 0)
+                    .eq(ShortLinkDO::getEnableStatus, 0);
+            ShortLinkDO shortLinkDO = ShortLinkDO.builder()
+                    .domain(hasShortLinkDO.getDomain())
+                    .favicon(hasShortLinkDO.getFavicon())
+                    .createType(hasShortLinkDO.getCreateType())
+                    .fullShortUrl(hasShortLinkDO.getFullShortUrl())
+                    .gid(requestParam.getGid())
+                    .originUrl(requestParam.getOriginUrl())
+                    .validDate(requestParam.getValidDate())
+                    .validDateType(requestParam.getValidDateType())
+                    .describe(requestParam.getDescribe())
+                    .build();
+            baseMapper.update(shortLinkDO,updateWrapper);
+        }else {
+            //3. 否则，就需要加读写锁，进行并发控制，保证写操作的安全
+            RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(String.format(LOCK_GID_UPDATE_KEY, requestParam.getFullShortUrl()));
+            RLock rLock = readWriteLock.writeLock();
+            //获取锁这里，加上try-finally结构，finally的时候释放锁
+            rLock.lock();
+            try {
+                //开始进行写操作
+                //(1) 将旧表中的删除
+                LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                        .eq(ShortLinkDO::getGid, requestParam.getOriginGid())
+                        .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                        .eq(ShortLinkDO::getDelFlag, 0)
+                        .eq(ShortLinkDO::getEnableStatus, 0);
+                ShortLinkDO delShortLinkDO = new ShortLinkDO();
+                delShortLinkDO.setDelFlag(1);
+                baseMapper.update(delShortLinkDO, updateWrapper);
+                //(2) 创建新的记录插入新的表中 --- 这里先不处理todayPv、Uv、Uip，后面异步处理，因为涉及到今日数据表
+                ShortLinkDO shortLinkDO = ShortLinkDO.builder()
+                        .domain(hasShortLinkDO.getDomain())
+                        .favicon(hasShortLinkDO.getFavicon())
+                        .createType(hasShortLinkDO.getCreateType())
+                        .fullShortUrl(hasShortLinkDO.getFullShortUrl())
+                        .gid(requestParam.getGid())
+                        .originUrl(requestParam.getOriginUrl())
+                        .shortUri(hasShortLinkDO.getShortUri())
+                        .describe(requestParam.getDescribe())
+                        .validDate(requestParam.getValidDate())
+                        .validDateType(requestParam.getValidDateType())
+                        .clickNum(hasShortLinkDO.getClickNum())
+                        .enableStatus(hasShortLinkDO.getEnableStatus())
+                        .totalPv(hasShortLinkDO.getTotalPv())
+                        .totalUip(hasShortLinkDO.getTotalUip())
+                        .totalUv(hasShortLinkDO.getTotalUv())
+                        .build();
+                baseMapper.insert(shortLinkDO);
+                //(3) 更新路由表
+                LambdaQueryWrapper<ShortLinkGotoDO> queryGotoWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                        .eq(ShortLinkGotoDO::getGid, requestParam.getOriginGid())
+                        .eq(ShortLinkGotoDO::getFullShortUrl, requestParam.getFullShortUrl());
+                ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryGotoWrapper);
+                shortLinkGotoMapper.delete(queryGotoWrapper);
+                shortLinkGotoDO.setGid(requestParam.getGid());
+                shortLinkGotoMapper.insert(shortLinkGotoDO);
 
-        //TODO 完成短链接修改功能
-        return null;
+            }finally {
+                rLock.unlock();
+            }
+            //4. 更新数据库，删除缓存，保证数据库和缓存数据一致性，两个缓存，一个是短链接记录缓存，一个是短链接是否为空缓存
+            if(!Objects.equals(hasShortLinkDO.getValidDate(),requestParam.getValidDate())||
+            !Objects.equals(hasShortLinkDO.getValidDateType(),requestParam.getValidDateType())||
+            !Objects.equals(hasShortLinkDO.getOriginUrl(),requestParam.getOriginUrl())){
+                stringRedisTemplate.delete(String.format(GOTO_SHORT_LINK_KEY,requestParam.getFullShortUrl()));
+                Date currentDate = new Date();
+                //先判断原始链接是否过期，过期的话，redis中会存一个短链接为空的标识
+                if(hasShortLinkDO.getValidDate() != null && hasShortLinkDO.getValidDate().before(currentDate)){
+                    //再判断requestParam中看是不是不过期了，看是否要删除这个参数
+                    if(Objects.equals(requestParam.getValidDateType(), ValidDateEnum.PERMANENT.getType()) ||
+                            requestParam.getValidDate().after(currentDate)){
+                        stringRedisTemplate.delete(String.format(GOTO_SHORT_LINK_IS_NULL_KEY,requestParam.getFullShortUrl()));
+                    }
+                }
+            }
+
+        }
     }
 
     @SneakyThrows

@@ -48,7 +48,8 @@ public class ShortLinkController {
      */
     @PutMapping("/api/short-link/v1/update")
     public Result<Void> updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam){
-        return Results.success(shortLinkService.updateShortLink(requestParam));
+        shortLinkService.updateShortLink(requestParam);
+        return Results.success();
     }
     /**
      * 跳转短链接
