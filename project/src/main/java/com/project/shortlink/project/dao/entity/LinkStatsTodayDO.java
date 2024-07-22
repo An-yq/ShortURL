@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.project.shortlink.project.common.database.BaseDO;
 import lombok.Data;
 
+import java.util.Date;
+
 /**
  * 短链接今日统计实体
  */
