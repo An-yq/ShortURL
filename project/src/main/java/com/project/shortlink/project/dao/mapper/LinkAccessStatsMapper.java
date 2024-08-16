@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 /**
- * 短链接基础访问监控持久层
+ * 短链接基础访问监控持久层 -- 页面上展示的按照日期查询监控信息部分
  */
 public interface LinkAccessStatsMapper {
 

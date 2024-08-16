@@ -6,8 +6,9 @@ spring:
     url: jdbc:shardingsphere:classpath:shardingsphere-config-${database.env:dev}.yaml
   data:
     redis:
-      host: 127.0.0.1
+      host: 39.101.70.41
       port: 6379
+      password: 'C1#tZ9^dB6!wP8@xQ5&lK3%'
   mvc:
     view:
       prefix: /templates/
@@ -20,3 +21,21 @@ mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath:mapper/*.xml
+
+logging:
+  level:
+    org:
+      yaml:
+        snakeyaml: DEBUG
+
+# rocketmq 配置信息
+rocketmq:
+  name-server: common-rocketmq-dev.magestack.cn:9876
+  producer:
+    group: short-link_project-service_stats-save_pg_anyeqi
+    topic: short-link_project-service_topic_anyeqi
+    send-message-timeout: 2000
+    retry-times-when-send-failed: 1
+    retry-times-when-send-async-failed: 1
+  consumer:
+    group: short-link_project-service_stats-save_cg_anyeqi

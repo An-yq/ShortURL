@@ -3,6 +3,7 @@ package com.project.shortlink.project.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.shortlink.project.dao.entity.ShortLinkDO;
+import com.project.shortlink.project.dto.biz.ShortLinkStatsRecordDTO;
 import com.project.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.project.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
@@ -56,4 +57,6 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @param response 响应体
      */
     void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
+
+    void linkAccessStats(String fullShortUrl, String gid, ShortLinkStatsRecordDTO shortLinkStatsRecordDTO);
 }

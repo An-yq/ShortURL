@@ -22,4 +22,8 @@ public class RedisConstant {
      * 修改短链接读写锁
      */
     public static final String LOCK_GID_UPDATE_KEY = "short-link_lock_update_%s";
+    /**
+     * 短链接uip记录
+     */
+    public static final String SHORT_LINK_STATS_UIP_KEY = "short-link_stats_uip:";
 }

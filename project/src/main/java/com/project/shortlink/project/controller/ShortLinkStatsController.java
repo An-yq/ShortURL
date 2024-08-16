@@ -24,7 +24,7 @@ public class ShortLinkStatsController {
     private final ShortLinkStatsService shortLinkStatsService;
 
     /**
-     * 访问单个短链接指定时间内监控数据
+     * 访问单个短链接指定时间内监控数据 -- 访问数据部分
      */
     @GetMapping("/api/short-link/v1/stats")
     public Result<ShortLinkStatsRespDTO> shortLinkStats(ShortLinkStatsReqDTO requestParam) {
@@ -32,7 +32,7 @@ public class ShortLinkStatsController {
     }
 
     /**
-     * 访问单个短链接指定时间内 访问记录 监控数据
+     * 访问单个短链接指定时间内 访问记录 监控数据 -- 访问记录部分
      */
     @GetMapping("/api/short-link/v1/stats/access-record")
     public Result<IPage<ShortLinkStatsAccessRecordRespDTO>> shortLinkStatsAccessRecord(ShortLinkStatsAccessRecordReqDTO requestParam) {
@@ -40,7 +40,7 @@ public class ShortLinkStatsController {
     }
 
     /**
-     * 访问分组短链接指定时间内监控数据
+     * 访问分组短链接指定时间内监控数据 -- 查询整个组的监控信息
      */
     @GetMapping("/api/short-link/v1/stats/group")
     public Result<ShortLinkStatsRespDTO> groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam) {
@@ -48,7 +48,7 @@ public class ShortLinkStatsController {
     }
 
     /**
-     * 访问分组短链接指定时间内访问记录监控数据
+     * 访问分组短链接指定时间内访问记录监控数据 -- 查询整个组的访问记录
      */
     @GetMapping("/api/short-link/v1/stats/access-record/group")
     public Result<IPage<ShortLinkStatsAccessRecordRespDTO>> groupShortLinkStatsAccessRecord(ShortLinkGroupStatsAccessRecordReqDTO requestParam) {
