@@ -16,6 +16,7 @@ import com.project.shortlink.project.mq.idempotent.MessageQueueIdempotentHandler
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
@@ -41,7 +42,7 @@ import static com.project.shortlink.project.common.constant.ShortLinkConstant.AM
         consumerGroup = "${rocketmq.consumer.group}",
         topic = "${rocketmq.producer.topic}"
 )
-public class ShortLinkStatsConsumer {
+public class ShortLinkStatsConsumer implements RocketMQListener<Map<String, String>> {
 
 
     //高德地图api

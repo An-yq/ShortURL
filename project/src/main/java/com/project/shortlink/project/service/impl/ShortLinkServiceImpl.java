@@ -89,7 +89,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //2. 将短链接添加到t_link表中
         ShortLinkDO shortLinkDO = ShortLinkDO.builder()
                 .enableStatus(0)
-                .createType(requestParam.getCreateType())
+                .createdType(requestParam.getCreateType())
                 .domain(requestParam.getDomain())
                 .fullShortUrl(fullShortUrl)
                 .shortUri(suffix)
@@ -174,7 +174,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkDO shortLinkDO = ShortLinkDO.builder()
                     .domain(hasShortLinkDO.getDomain())
                     .favicon(hasShortLinkDO.getFavicon())
-                    .createType(hasShortLinkDO.getCreateType())
+                    .createdType(hasShortLinkDO.getCreatedType())
                     .fullShortUrl(hasShortLinkDO.getFullShortUrl())
                     .gid(requestParam.getGid())
                     .originUrl(requestParam.getOriginUrl())
@@ -204,7 +204,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 ShortLinkDO shortLinkDO = ShortLinkDO.builder()
                         .domain(hasShortLinkDO.getDomain())
                         .favicon(hasShortLinkDO.getFavicon())
-                        .createType(hasShortLinkDO.getCreateType())
+                        .createdType(hasShortLinkDO.getCreatedType())
                         .fullShortUrl(hasShortLinkDO.getFullShortUrl())
                         .gid(requestParam.getGid())
                         .originUrl(requestParam.getOriginUrl())
@@ -335,7 +335,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     TimeUnit.MILLISECONDS);
             //重定向之前，将监控信息保存
             ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortUrl, request, response);
-            linkAccessStats(fullShortUrl,gid,statsRecord);
+            linkAccessStats(fullShortUrl,shortLinkDO.getGid(),statsRecord);
             ((HttpServletResponse) response).sendRedirect(originUrl);
         } finally {
             lock.unlock();

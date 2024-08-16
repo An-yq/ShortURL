@@ -61,7 +61,7 @@ public class ShortLinkDO extends BaseDO {
     /**
      * 创建类型 0：自定义 1：控制台
      */
-    private int createType;
+    private int createdType;
 
     /**
      * 有效期类型 0：永久有效 1：自定义有效期
